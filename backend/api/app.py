@@ -1,12 +1,13 @@
 import os
 import sys
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 import json
 import logging
 from logging.handlers import TimedRotatingFileHandler
 from pathlib import Path
 import threading
 import asyncio
-from explainer.explainer_service import main_loop as explainer_main_loop
+from backend.explainer.explainer_service import main_loop as explainer_main_loop
 
 from flask import Flask, request, jsonify
 from flask_cors import CORS, cross_origin
