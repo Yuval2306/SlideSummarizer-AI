@@ -4,6 +4,9 @@ import json
 import logging
 from logging.handlers import TimedRotatingFileHandler
 from pathlib import Path
+import threading
+import asyncio
+from explainer.explainer_service import main_loop as explainer_main_loop
 
 from flask import Flask, request, jsonify
 from flask_cors import CORS, cross_origin
@@ -164,5 +167,14 @@ def check_status_by_uid(uid):
         session.close()
 
 
+def start_explainer_background():
+    asyncio.run(explainer_main_loop())
+
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    # Start explainer in background
+    t = threading.Thread(target=start_explainer_background, daemon=True)
+    t.start()
+
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port, debug=False)
+
