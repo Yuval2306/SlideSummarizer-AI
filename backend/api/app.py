@@ -7,10 +7,6 @@ from werkzeug.utils import secure_filename
 from database import get_session, User, Upload
 from explainer_service import process_pdf
 
-# ============================
-#  CONFIG
-# ============================
-
 app = Flask(__name__)
 
 CORS(app, supports_credentials=True, origins="*")
@@ -21,22 +17,18 @@ OUTPUT_FOLDER = os.path.join(os.path.dirname(__file__), "..", "shared", "outputs
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(OUTPUT_FOLDER, exist_ok=True)
 
-# ============================
-#  ROUTES
-# ============================
 
 @app.route("/", methods=["GET"])
 @cross_origin()
 def home():
-    return jsonify({"status": "backend is live"}), 200
+    return jsonify({"status": "backend is live"})
 
 
-# ---------- UPLOAD ----------
-@app.route('/upload', methods=['POST', 'OPTIONS'])
+@app.route("/upload", methods=["POST", "OPTIONS"])
 @cross_origin()
 def upload_file():
     if request.method == "OPTIONS":
-        return _build_cors_preflight_response()
+        return _cors_response()
 
     try:
         file = request.files.get("file")
@@ -48,10 +40,9 @@ def upload_file():
 
         uid = str(uuid.uuid4())
         filename = secure_filename(f"{uid}.pdf")
-        file_path = os.path.join(UPLOAD_FOLDER, filename)
-        file.save(file_path)
+        path = os.path.join(UPLOAD_FOLDER, filename)
+        file.save(path)
 
-        # Save initial DB entry
         session = get_session()
         upload = Upload(
             uid=uid,
@@ -64,7 +55,7 @@ def upload_file():
         session.commit()
 
         # Process PDF
-        output_path = process_pdf(file_path, uid, summary_level, language)
+        process_pdf(path, uid, summary_level, language)
 
         upload.status = "completed"
         session.commit()
@@ -76,10 +67,9 @@ def upload_file():
         return jsonify({"error": str(e)}), 500
 
 
-# ---------- STATUS ----------
 @app.route("/status/<uid>", methods=["GET"])
 @cross_origin()
-def check_status_by_uid(uid):
+def check_status(uid):
     try:
         session = get_session()
         upload = session.query(Upload).filter(Upload.uid == uid).first()
@@ -87,21 +77,20 @@ def check_status_by_uid(uid):
         if not upload:
             return jsonify({"error": "UID not found"}), 404
 
-        return jsonify({"uid": uid, "status": upload.status})
+        return jsonify({"status": upload.status})
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
 
-# ---------- DOWNLOAD PDF ----------
 @app.route("/download/<uid>", methods=["GET"])
 @cross_origin()
-def download_pdf(uid):
+def download(uid):
     try:
         file_path = os.path.join(OUTPUT_FOLDER, f"{uid}.pdf")
 
         if not os.path.exists(file_path):
-            return jsonify({"error": "PDF not ready"}), 404
+            return jsonify({"error": "File not ready"}), 404
 
         return send_from_directory(OUTPUT_FOLDER, f"{uid}.pdf", as_attachment=True)
 
@@ -109,21 +98,13 @@ def download_pdf(uid):
         return jsonify({"error": str(e)}), 500
 
 
-# ============================
-#  CORS HELPERS
-# ============================
-
-def _build_cors_preflight_response():
+def _cors_response():
     response = jsonify({"status": "OK"})
     response.headers.add("Access-Control-Allow-Origin", "*")
     response.headers.add("Access-Control-Allow-Headers", "Content-Type")
     response.headers.add("Access-Control-Allow-Methods", "POST, OPTIONS")
     return response
 
-
-# ============================
-# RUN
-# ============================
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
