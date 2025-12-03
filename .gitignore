@@ -107,5 +107,3 @@ yarn-error.log*
 # OTHER
 ##################################################
 
-# JSON output (your summaries)
-*.json
