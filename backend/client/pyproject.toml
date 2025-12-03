@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "gemini_explainer_client"
+version = "0.1.0"
+description = "Python client for the Gemini Explainer Web API"
+authors = [
+    {name = "Gemini Explainer Team", email = "example@example.com"}
+]
+readme = "README.md"
+requires-python = ">=3.8"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "requests>=2.28.0",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/yourusername/gemini-explainer-client"
+"Bug Tracker" = "https://github.com/yourusername/gemini-explainer-client/issues"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+packages = ["gemini_explainer_client"]
