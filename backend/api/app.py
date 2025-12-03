@@ -1,13 +1,26 @@
 import os
 import sys
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
+# ------------------------------------------------------
+# FIX: Ensure backend directory is added to Python path
+# ------------------------------------------------------
+CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))       # backend/api
+BACKEND_DIR = os.path.abspath(os.path.join(CURRENT_DIR, "..")) # backend/
+
+# Add backend/ as root so imports like "from explainer.xxx" will work
+sys.path.insert(0, BACKEND_DIR)
+
+# ------------------------------------------------------
+# Imports
+# ------------------------------------------------------
 import json
 import logging
 from logging.handlers import TimedRotatingFileHandler
 from pathlib import Path
 import threading
 import asyncio
-from backend.explainer.explainer_service import main_loop as explainer_main_loop
+
+from explainer.explainer_service import main_loop as explainer_main_loop
 
 from flask import Flask, request, jsonify
 from flask_cors import CORS, cross_origin
