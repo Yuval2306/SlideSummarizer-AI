@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { jsPDF } from "jspdf";
 
-const API_URL = "https://slidesummarizer-backend.onrender.com/api";
+const API_URL = "https://slidesummarizer-backend.onrender.com";
 
 
 // Summary level configurations
