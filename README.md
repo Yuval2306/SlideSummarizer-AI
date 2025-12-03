@@ -1,224 +1,156 @@
-# Gemini-Explainer Web System
+# SlideSummarizer AI 🚀
 
-A professional web-based system that explains PowerPoint presentations using Google's Gemini AI. This system transforms the original script-based Gemini-Explainer into a distributed web application with multiple components and professional database management.
+A full-stack application that automatically analyzes PowerPoint presentations and generates high‑quality slide‑by‑slide summaries using **Google Gemini AI**.
 
-## Branch Structure
+This project was built as a production‑ready system including:
+- A **React frontend**
+- A **Flask backend API**
+- An **async AI micro‑service** (explainer)
+- A **SQLAlchemy database layer**
+- Full deployment to **Render.com** (frontend, backend & worker)
 
-The project is organized into a feature branch that contains all components:
+---
 
-**`Feat/solution-part3`** - Contains the complete web system implementation:
-- Web API with Flask
-- Explainer Service
-- Python Client Library
-- SQLite Database with SQLAlchemy ORM
-- Shared directory structure
-- Test scripts
+## 🌐 Live Demo
 
-## Project Structure
+You can try the deployed version here:  
+👉 **https://slidesummarizer-frontend.onrender.com/**
+
+---
+
+## 🧠 What the App Does
+
+Upload a `.pptx` file → choose summary style → get slide explanations generated automatically.
+
+Supported summary modes:
+- **Beginner** – simple and educational  
+- **Comprehensive** – detailed and deep  
+- **Executive Brief** – short, sharp, 2–3 sentence summaries  
+
+Supported languages:
+- English 🇬🇧  
+- Hebrew 🇮🇱  
+- Russian 🇷🇺  
+- Spanish 🇪🇸  
+
+---
+
+## 🏗️ System Architecture
 
 ```
-gemini-explainer-web/
+Frontend (React)
+      |
+      v
+Backend API (Flask)
+      |
+      v
+Database (SQLAlchemy + SQLite/Postgres)
+      |
+      v
+AI Explainer Service (Async Worker)
+      |
+      v
+Google Gemini API (Slide Summaries)
+```
+
+---
+
+## 📂 Project Structure
+
+```
+SlideSummarizer-AI/
+│── backend/
+│   ├── api/
+│   │   └── app.py
+│   ├── explainer/
+│   │   └── explainer_service.py
+│   ├── database.py
+│   └── shared/
+│       ├── uploads/
+│       ├── outputs/
+│       └── logs/
 │
-├── gemini-explainer/          # Original project files
-│   ├── ppt_parser.py          # PowerPoint parsing functions
-│   ├── gemini_client.py       # Gemini API interaction
-│   ├── main.py                # Main script
-│   ├── test_script.py         # System tests
-│   └── .env                   # Environment variables with API key
-│
-├── database.py                # SQLAlchemy ORM models & DB connection
-├── init_db.py                 # Database initialization script
-│
-├── db/                        # Database directory (auto-created)
-│   └── gemini_explainer.db    # SQLite database file
-│
-├── api/                       # Web API component
-│   ├── app.py                 # Flask application with database integration
-│   └── requirements.txt       # Dependencies
-│
-├── explainer/                 # Explainer service
-│   ├── explainer_service.py   # Database-driven processing service
-│   └── requirements.txt       # Dependencies
-│
-├── client/                    # Python client
+│── frontend/
 │   ├── src/
-│   │   └── gemini_explainer_client/
-│   │       ├── __init__.py
-│   │       └── client.py      # Enhanced client with email support
-│   └── pyproject.toml         # Package configuration
+│   ├── public/
+│   └── package.json
 │
-├── shared/                    # Shared data directories (created automatically)
-│   ├── uploads/               # Uploaded files (stored as {uid}.pptx)
-│   ├── outputs/               # Processed results (stored as {uid}.json)
-│   └── logs/                  # Log files
-│       ├── api/               # API logs
-│       └── explainer/         # Explainer logs
-│
-├── tests/                     # System tests
-│   └── test_system.py         # End-to-end tests with database
-│
-└── README.md                  # Project documentation
+│── README.md
 ```
 
-## System Architecture
+---
 
-The system consists of four main components:
+## ⚙️ Technologies Used
 
-### 1. **Database Layer (SQLite + SQLAlchemy)**
-- **Users Table**: Stores user information (email-based)
-- **Uploads Table**: Tracks all file uploads with metadata
-- **Status Tracking**: `uploaded` → `processing` → `completed`/`failed`
-- **Error Logging**: Database-stored error messages
+### **Frontend**
+- React
+- Fetch API for backend communication
+- Responsive UI/UX flow
 
-### 2. **Web API (Flask)**
-- Handles client requests with database integration
-- Supports anonymous uploads and user-associated uploads
-- Status queries by UID or email/filename combination
-- Email validation with professional error handling
+### **Backend**
+- Python + Flask  
+- SQLAlchemy ORM  
+- Email validation  
+- CORS support  
+- File management (uploads & outputs)
 
-### 3. **Explainer Service**
-- Database-driven file discovery (no filesystem scanning)
-- Real-time status updates in database
-- Enhanced error handling and logging
-- Automatic status progression and finish time tracking
+### **AI Service**
+- Asynchronous Gemini model calls  
+- Batch processing  
+- PPTX parsing using `python-pptx`
 
-### 4. **Python Client**
-- Convenient interface with email support
-- Multiple status query methods
-- Upload history retrieval
-- Enhanced error handling
+### **Deployment**
+- Render.com (Web Service + Background Worker)  
+- Environment variables  
+- Auto-builds from GitHub  
 
-## Database Schema
+---
 
-### Users Table
-- `id` (Primary Key, Auto-increment)
-- `email` (Unique, Not Null)
+## 🚀 How to Run Locally
 
-### Uploads Table
-- `id` (Primary Key, Auto-increment)
-- `uid` (Unique UUID)
-- `filename` (Original filename)
-- `upload_time` (Upload timestamp)
-- `finish_time` (Processing completion time)
-- `status` (`uploaded`, `processing`, `completed`, `failed`)
-- `error_message` (Error details for failed uploads)
-- `user_id` (Foreign Key to Users, nullable for anonymous uploads)
-
-## Installation
-
-### Prerequisites
-- Python 3.8+
-- PowerPoint presentation files (.pptx)
-- Google Gemini API key
-
-### Steps
-
-1. **Initialize the database**:
-   ```bash
-   python init_db.py
-   ```
-
-2. **Install the API dependencies**:
-   ```bash
-   cd api
-   pip install -r requirements.txt
-   ```
-
-3. **Install the Explainer dependencies**:
-   ```bash
-   cd explainer
-   pip install -r requirements.txt
-   ```
-
-4. **Install the Python client (development mode)**:
-   ```bash
-   cd client
-   pip install -e .
-   ```
-
-5. **Ensure your `.env` file in the `gemini-explainer` directory contains your Gemini API key**:
-   ```
-   GEMINI_API_KEY=your_api_key_here
-   ```
-
-## Running the System
-
-1. **Start the Web API** (in one terminal):
-   ```bash
-   cd api
-   python app.py
-   ```
-
-2. **Start the Explainer service** (in another terminal):
-   ```bash
-   cd explainer
-   python explainer_service.py
-   ```
-
-## Usage
-
-### Using the Python Client
-
-#### Anonymous Upload
-```python
-from gemini_explainer_client import ExplainerClient
-
-# Initialize the client
-client = ExplainerClient()
-
-# Upload a presentation anonymously
-uid = client.upload("path/to/presentation.pptx")
-print(f"Uploaded with UID: {uid}")
-
-# Check status by UID
-status = client.status(uid)
-if status.is_pending():
-    print("Still processing...")
-elif status.is_done():
-    print(f"Processing complete! Found {len(status.explanation)} slides")
-elif status.is_failed():
-    print(f"Processing failed: {status.error_message}")
-```
-
-#### Upload with User Email
-```python
-# Upload with email association
-uid = client.upload("path/to/presentation.pptx", email="user@example.com")
-
-# Check status by email and filename
-status = client.status_by_email_filename("user@example.com", "presentation.pptx")
-print(f"Latest upload status: {status.status}")
-
-# Get upload history for user
-history = client.history("user@example.com")
-print(f"Total uploads: {history['total_uploads']}")
-for upload in history['uploads']:
-    print(f"- {upload['filename']}: {upload['status']}")
-```
-
-## Testing
-
-### Running the Automated Test
-
-The project includes a comprehensive end-to-end test with database integration:
-
+### 1. Clone the project
 ```bash
-cd tests
-python test_system.py
+git clone https://github.com/Yuval2306/SlideSummarizer-AI.git
+cd SlideSummarizer-AI
 ```
 
-
-## Database Management
-
-### Initialize/Reset Database:
+### 2. Backend setup
 ```bash
-python init_db.py --force  # Recreates database (deletes existing data)
+cd backend
+pip install -r requirements.txt
+python api/app.py
 ```
 
-### View Database Contents:
-- **PyCharm Professional**: Use Database Tool Window
-- **VSCode**: Install SQLite extension
-- **Third-party**: Use [SQLite Browser](https://sqlitebrowser.org/)
+### 3. Frontend setup
+```bash
+cd frontend
+npm install
+npm start
+```
 
-### Database Location:
-The SQLite database file is located at: `db/gemini_explainer.db`
+Open:  
+👉 http://localhost:3000
+
+---
+
+## 🔑 Environment Variables
+
+### Backend
+```
+GEMINI_API_KEY=your_key_here
+UPLOADS_DIR=shared/uploads
+OUTPUTS_DIR=shared/outputs
+LOGS_DIR=shared/logs
+```
+
+### Frontend
+```
+REACT_APP_API_URL=https://your-backend.onrender.com
+```
+---
+
+## 🙌 Author
+
+**Yuval Boker**
+Full‑Stack & Software Developer
+---
