@@ -95,18 +95,18 @@ async def parse_presentation(pptx_path):
 
 
 # ---------------------------------------------------
-# GEMINI API CALL – WITH RETRY & RATE LIMIT HANDLING
+# GEMINI API CALL – FIXED VERSION
 # ---------------------------------------------------
 import google.generativeai as genai
 
-class RateLimitError(Exception):
-    pass
-
-async def get_explanation(slide_text, summary_level, language, timeout=30, max_retries=3):
+async def get_explanation(slide_text, summary_level, language, timeout=30):
     try:
         prompt = get_prompt_for_level_and_language(slide_text, summary_level, language)
 
+        # הגדרת ה־API Key
         genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+
+        # יצירת מודל
         model = genai.GenerativeModel("gemini-2.0-flash-lite-preview-02-05")
 
         def call_gemini():
@@ -123,56 +123,41 @@ async def get_explanation(slide_text, summary_level, language, timeout=30, max_r
     except asyncio.TimeoutError:
         return "Error: Gemini API request timed out."
     except Exception as e:
-        error_str = str(e)
-        
-        # אם זו שגיאת rate limit, זרוק RateLimitError
-        if "429" in error_str or "quota" in error_str.lower() or "exceeded" in error_str.lower():
-            raise RateLimitError(error_str)
-        
-        return f"Error explaining this slide: {error_str}"
+        return f"Error explaining this slide: {str(e)}"
+
 
 
 # ---------------------------------------------------
-# SLIDE PROCESSING – WITH BETTER RATE LIMITING
+# SLIDE PROCESSING
 # ---------------------------------------------------
-async def process_slides(slides, summary_level, language, delay_seconds=5, max_parallel=1):
-    """
-    Process slides with improved rate limiting.
-    - max_parallel=1 means only ONE slide at a time (safer)
-    - delay_seconds=5 means wait 5 seconds between slides
-    """
+async def process_slides(slides, summary_level, language, delay_seconds=3, max_parallel=3):
     results = []
 
-    for i, slide in enumerate(slides):
-        try:
-            logger.info(f"Processing slide {slide['slide_number']}/{len(slides)}...")
-            
-            explanation = await get_explanation(
-                slide["text"], 
-                summary_level, 
-                language
-            )
-            
-            results.append({
-                "slide_number": slide["slide_number"],
-                "explanation": explanation
-            })
-            
-            # Wait before next slide (except for the last one)
-            if i < len(slides) - 1:
-                logger.info(f"Waiting {delay_seconds}s before next slide...")
-                await asyncio.sleep(delay_seconds)
-                
-        except RateLimitError as e:
-            logger.error(f"RATE LIMIT HIT on slide {slide['slide_number']}: {str(e)}")
-            logger.error("Stopping processing to avoid further quota damage")
-            raise  # Propagate to caller
-        except Exception as e:
-            logger.error(f"Error on slide {slide['slide_number']}: {str(e)}")
-            results.append({
-                "slide_number": slide["slide_number"],
-                "explanation": f"Error: {str(e)}"
-            })
+    for i in range(0, len(slides), max_parallel):
+        batch = slides[i:i + max_parallel]
+        tasks = []
+
+        for slide in batch:
+            task = asyncio.create_task(get_explanation(slide["text"], summary_level, language))
+            tasks.append((slide["slide_number"], task))
+
+        # Collect results
+        for slide_number, task in tasks:
+            try:
+                explanation = await task
+                results.append({
+                    "slide_number": slide_number,
+                    "explanation": explanation
+                })
+            except Exception as e:
+                results.append({
+                    "slide_number": slide_number,
+                    "explanation": f"Error processing slide {slide_number}: {str(e)}"
+                })
+
+        if i + max_parallel < len(slides):
+            logger.info(f"Waiting {delay_seconds} seconds before next batch...")
+            await asyncio.sleep(delay_seconds)
 
     results.sort(key=lambda x: x["slide_number"])
     return results
@@ -211,7 +196,6 @@ logger = setup_logger()
 # Upload Processing
 # ---------------------------------------------------
 SLEEP_INTERVAL = 10
-RATE_LIMIT_WAIT = 3600  # חכה שעה אחרי rate limit
 
 
 async def process_upload(upload):
@@ -241,14 +225,7 @@ async def process_upload(upload):
 
         logger.info(f"Found {len(slides)} slides, processing with level: {upload.summary_level} in language: {upload.language}…")
 
-        try:
-            explanations = await process_slides(slides, upload.summary_level, upload.language)
-        except RateLimitError as e:
-            # אם יש rate limit, בטל את התהליך והחזור למצב "uploaded"
-            logger.error(f"Rate limit encountered. Resetting upload status to 'uploaded'")
-            upload_db.status = "uploaded"  # תנסה שוב מאוחר יותר
-            session.commit()
-            return
+        explanations = await process_slides(slides, upload.summary_level, upload.language)
 
         with open(upload.output_path, "w", encoding="utf-8") as f:
             json.dump(explanations, f, indent=2, ensure_ascii=False)
@@ -299,8 +276,6 @@ async def main_loop():
                 logger.info(f"Found {len(pending)} pending uploads")
                 for upload in pending:
                     await process_upload(upload)
-            else:
-                logger.debug("No pending uploads")
 
             await asyncio.sleep(SLEEP_INTERVAL)
 
@@ -308,6 +283,7 @@ async def main_loop():
             logger.error(f"Error in main loop: {str(e)}")
             logger.error(traceback.format_exc())
             await asyncio.sleep(SLEEP_INTERVAL)
+
 
 
 if __name__ == "__main__":
